@@ -7,6 +7,8 @@
 <script>
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+
 export default {
   data() {
     return {
@@ -17,40 +19,40 @@ export default {
       controls: null,
       location: [
         {
-          x: 4,
-          y: 8,
-          z: 2,
-          mag: "1"
+          x: 70,
+          y: 80,
+          z: 10,
+          msg: "1"
         },
         {
-          x: 4,
-          y: 8,
-          z: -2,
-          mag: "2"
+          x: 70,
+          y: 80,
+          z: -10,
+          msg: "2"
         },
         {
-          x: 4,
-          y: 16,
+          x: 50,
+          y: 130,
           z: 0,
-          mag: "3"
+          msg: "3"
         },
         {
           x: 0,
-          y: 20,
+          y: 220,
           z: 0,
-          mag: "4"
+          msg: "4"
         },
         {
-          x: -4,
-          y: 12,
-          z: 0,
-          mag: "5"
+          x: -45,
+          y: 130,
+          z: 5,
+          msg: "5"
         },
         {
-          x: -5,
-          y: 12,
-          z: 1,
-          mag: "6"
+          x: -60,
+          y: 80,
+          z: 5,
+          msg: "6"
         }
       ]
     };
@@ -81,14 +83,17 @@ export default {
       // this.controls.maxPolarAngle = Math.PI / 2;
       // this.controls.minPolarAngle = Math.PI / 2;
 
-      var axes = new THREE.AxisHelper(100);
+      var axes = new THREE.AxisHelper(500);
       this.scene.add(axes);
 
-      this.addCone1();
-      this.addCube();
-      this.addCone();
+      this.addModel();
+      // this.addCone1();
+      // this.addCube();
+      // this.addCone();
       this.addSphere();
-      // this.addOther();
+      // this.addLine();
+      this.addText();
+
       this.animate();
     },
 
@@ -98,37 +103,49 @@ export default {
       requestAnimationFrame(this.animate);
     },
 
-    addOther() {
-      var shape = new THREE.Shape();
-      shape.moveTo(0, 0);
-      shape.lineTo(4, 0);
-      shape.lineTo(3, 2);
-      shape.lineTo(1, 2);
-      shape.lineTo(0, 0);
+    /**
+     * 塔 - 模型
+     */
+    addModel() {
+      let self = this;
+      var loader = new GLTFLoader();
 
-      var extrudeSettings = {
-        steps: 2,
-        depth: 4,
-        bevelEnabled: true,
-        bevelThickness: 0,
-        bevelSize: 1,
-        bevelOffset: 0,
-        bevelSegments: 1
-      };
+      loader.load(
+        "static/electric/scene.gltf",
+        function(gltf) {
+          // 解决模型为黑色的原因
+          gltf.scene.traverse(function(child) {
+            if (child.isMesh) {
+              child.material.emissive = child.material.color;
+              child.material.emissiveMap = child.material.map;
+            }
+          });
 
-      var geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-      // var material = new THREE.MeshBasicMaterial({ color: 0x409eff });
-      // var mesh = new THREE.Mesh(geometry, material);
-      // this.scene.add(mesh);
-
-      const edges = new THREE.EdgesGeometry(geometry);
-      const line = new THREE.LineSegments(
-        edges,
-        new THREE.LineBasicMaterial({ color: 0xffffff })
+          var mesh = gltf.scene;
+          // let material = new THREE.MeshBasicMaterial({
+          //   color: 0x409eff
+          // });
+          // var mesh1 = new THREE.Mesh(gltf, material);
+          mesh.scale.set(0.5, 0.5, 0.5);
+          mesh.translateX(-12);
+          mesh.rotateY(Math.PI / 2);
+          self.scene.add(mesh); // 将模型引入three
+          console.log("加载完成");
+        },
+        // called while loading is progressing
+        function(xhr) {
+          console.log((xhr.loaded / xhr.total) * 100 + "% loaded");
+        },
+        // called when loading has errors
+        function(error) {
+          console.error("An error happened", error);
+        }
       );
-      this.scene.add(line);
     },
 
+    /**
+     * 下 - 四棱锥
+     */
     addCone1() {
       var geometry = new THREE.ConeGeometry(6, 8, 4, 1, false, Math.PI / 4);
       var material = new THREE.MeshBasicMaterial({ color: 0x409eff });
@@ -146,6 +163,9 @@ export default {
       line.position.set(0, 4, 0);
     },
 
+    /**
+     * 中 - 长方体
+     */
     addCube() {
       var geometry = new THREE.BoxGeometry(5, 8, 5);
       var material = new THREE.MeshBasicMaterial({ color: 0x409eff });
@@ -162,6 +182,9 @@ export default {
       line.position.set(0, 7.8, 0);
     },
 
+    /**
+     * 上四棱锥
+     */
     addCone() {
       var geometry = new THREE.ConeGeometry(3.4, 5, 4, 1, false, Math.PI / 4);
       var material = new THREE.MeshMatcapMaterial({ color: 0x409eff });
@@ -179,28 +202,23 @@ export default {
       line.position.set(0, 14, 0);
     },
 
+    /**
+     * 航点
+     */
     addSphere() {
-      var geometry = new THREE.SphereGeometry(0.2, 32, 32);
+      var geometry = new THREE.SphereGeometry(2, 32, 32);
       var material = new THREE.MeshMatcapMaterial({ color: 0xff0000 });
-
-      // var lineGeometry = new THREE.Geometry();
 
       this.location.forEach(element => {
         var sphere = new THREE.Mesh(geometry, material);
         this.scene.add(sphere);
         sphere.position.set(element.x, element.y, element.z);
-
-        // lineGeometry.vertices.push(
-        //   new THREE.Vector3(element.x, element.y, element.z)
-        // );
       });
-
-      // var lineMaterial = new THREE.LineBasicMaterial({ color: 0x0000ff });
-      // var line = new THREE.Line(lineGeometry, lineMaterial);
-      // this.scene.add(line);
-      // this.addLine();
     },
 
+    /**
+     * 航点连接线
+     */
     addLine() {
       var material = new THREE.LineBasicMaterial({
         color: 0x0000ff
@@ -215,6 +233,39 @@ export default {
 
       var line = new THREE.Line(geometry, material);
       this.scene.add(line);
+    },
+
+    createCanvas(text) {
+      var canvas = document.createElement("canvas");
+      var width = 100;
+      var height = 100;
+      canvas.width = width;
+      canvas.height = height;
+      var context = canvas.getContext("2d");
+
+      context.fillStyle = "rgba(0, 0, 0, 0)";
+      context.fillRect(0, 0, width, height);
+
+      /* 字体颜色 */
+      context.fillStyle = "rgba(255, 255, 0, 1)";
+      context.font = "100px bolder";
+      /**文字 */
+      console.log("text:", text);
+      context.fillText(text, 0, 90);
+      return canvas;
+    },
+
+    addText() {
+      this.location.forEach(element => {
+        var texture = new THREE.Texture(this.createCanvas(element.msg)); //就是上面的canvas，我将它写在一个函数中然后返回。
+        texture.needsUpdate = true;
+
+        var spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+        var sprite = new THREE.Sprite(spriteMaterial);
+        sprite.scale.set(5, 5, 5); //大小缩放
+        sprite.position.set(element.x + 5, element.y + 5, element.z + 5); //位置
+        this.scene.add(sprite); //将其放入场景中
+      });
     }
   }
 };
